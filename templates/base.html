@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Revolving Fund{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<style>
+  :root{
+    --brand: #245136;
+    --brand-dark: #1a3d27;
+    --brand-deep: #14301f;
+    --brand-light: #e8f0e6;
+    --accent: #c98b3a;
+    --accent-dark: #b07a28;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --surface: #ffffff;
+    --line: #e5e9e3;
+    --page-bg: #f3f6f2;
+  }
+  body{ background:var(--page-bg); color:var(--ink); font-family:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif; -webkit-font-smoothing:antialiased; }
+  .bg-brand{ background-color: var(--brand) !important; }
+  .text-brand{ color: var(--brand) !important; }
+  .btn{ border-radius:.55rem; font-weight:500; }
+  .btn-brand{ background-color: var(--brand); border-color: var(--brand); color:#fff;
+              box-shadow:0 2px 6px rgba(36,81,54,.25); }
+  .btn-brand:hover{ background-color:var(--brand-dark); border-color:var(--brand-dark); color:#fff; }
+  .btn-outline-secondary{ color:#475569; border-color:#d3dad2; }
+  .btn-outline-secondary:hover{ background:#f1f5f0; border-color:#c2ccc0; color:#334155; }
+  .card{ border:1px solid var(--line); border-radius:16px; background:var(--surface);
+         box-shadow:0 1px 2px rgba(16,24,40,.04), 0 4px 16px rgba(16,24,40,.05); }
+  .page-title{ font-weight:700; letter-spacing:-.01em; color:var(--ink); }
+  .page-title i{ color:var(--brand); }
+  .page-sub{ color:var(--muted); font-size:.9rem; }
+  .kpi-card{ position:relative; border-radius:16px; padding:1.2rem 1.4rem; color:#fff; overflow:hidden;
+             box-shadow:0 6px 18px rgba(16,24,40,.14); }
+  .kpi-card .kpi-icon{ position:absolute; right:-16px; bottom:-16px; font-size:5.2rem; opacity:.13; }
+  .kpi-card .kpi-value{ font-size:1.8rem; font-weight:800; letter-spacing:-.01em; }
+  .kpi-card .kpi-label{ font-size:.74rem; text-transform:uppercase; letter-spacing:.07em; opacity:.92; font-weight:600; }
+  .kpi-1{ background:linear-gradient(135deg,#2c5e3d,#1b4029); }
+  .kpi-2{ background:linear-gradient(135deg,#3d6b45,#264a2c); }
+  .kpi-3{ background:linear-gradient(135deg,#d29a44,#b07a28); }
+  .kpi-4{ background:linear-gradient(135deg,#9c7d3f,#775f2e); }
+  .kpi-5{ background:linear-gradient(135deg,#5c7a5f,#3f5842); }
+  .kpi-6{ background:linear-gradient(135deg,#4a90a4,#33657a); }
+  .kpi-7{ background:linear-gradient(135deg,#7d7d7d,#5a5a5a); }
+  table.table{ --bs-table-bg:transparent; border-collapse:separate; border-spacing:0; font-size:.875rem; margin-bottom:0; }
+  table.table thead th{ font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+                        color:#51635a; background:#eaf1e8; border:none; padding:.75rem .9rem; white-space:nowrap; }
+  table.table thead th:first-child{ border-radius:.6rem 0 0 0; }
+  table.table thead th:last-child{ border-radius:0 .6rem 0 0; }
+  table.table tbody td, table.table tfoot td{ padding:.72rem .9rem; border-top:1px solid #e9eee7; vertical-align:middle; }
+  table.table tbody tr:nth-child(even){ background:#fafcf9; }
+  table.table tbody tr:hover{ background:#f1f7ef; }
+  table.table td, table.table th{ font-variant-numeric:tabular-nums; }
+  table.table tfoot{ border-top:2px solid var(--brand); }
+  .table-grand{ background:linear-gradient(90deg, var(--brand), #3d6b45) !important; color:#fff; font-weight:700; }
+  .table-grand td{ color:#fff; border-top:1px solid rgba(255,255,255,.2); }
+  .table-grand a, .table-grand a:hover{ color:#fff; }
+  .account-badge{ background:#f3f7f2; border:1px solid #d5e2d3; color:var(--brand);
+                  font-weight:600; border-radius:.5rem; padding:.35em .6em; font-size:.78rem; }
+  .sidebar{ position:fixed; top:0; bottom:0; left:0; width:260px; z-index:1045;
+            background:linear-gradient(180deg, var(--brand) 0%, var(--brand-deep) 100%);
+            color:#fff; overflow-y:auto;
+            transform:translateX(-100%); transition:transform .25s ease; }
+  .sidebar.open{ transform:none; box-shadow:0 0 30px rgba(0,0,0,.35); }
+  .sidebar::-webkit-scrollbar{ width:6px; }
+  .sidebar::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.22); border-radius:3px; }
+  .sidebar .sidebar-brand{ display:flex; align-items:center; gap:.6rem; font-weight:700; font-size:1.05rem;
+                           padding:1.1rem 1.25rem; background:rgba(0,0,0,.16);
+                           border-bottom:1px solid rgba(255,255,255,.08); letter-spacing:.01em; }
+  .sidebar .brand-badge{ width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg, var(--accent), var(--accent-dark));
+                         display:flex; align-items:center; justify-content:center; font-size:1rem;
+                         box-shadow:0 2px 8px rgba(0,0,0,.3); }
+  .sidebar .nav-section{ font-size:.68rem; text-transform:uppercase; letter-spacing:.09em;
+                         color:rgba(255,255,255,.5); font-weight:700; padding:1.15rem 1.25rem .45rem; }
+  .sidebar .nav-link{ color:rgba(255,255,255,.8); border-radius:10px; font-size:.9rem; font-weight:500;
+                      padding:.55rem .9rem; margin:2px .6rem; display:flex; align-items:center; gap:.65rem; }
+  .sidebar .nav-link i{ width:1.25em; text-align:center; font-size:.95rem; color:rgba(255,255,255,.7); }
+  .sidebar .nav-link:hover{ color:#fff; background:rgba(255,255,255,.09); }
+  .sidebar .nav-link:hover i{ color:#fff; }
+  .sidebar .nav-link.active{ color:#fff; font-weight:600;
+                             background:linear-gradient(135deg, var(--accent), var(--accent-dark));
+                             box-shadow:0 4px 14px rgba(201,139,58,.35); }
+  .sidebar .nav-link.active i{ color:#fff; }
+  .sidebar .cluster-toggle{ cursor:pointer; }
+  .sidebar .cluster-chevron{ margin-left:auto; transition:transform .2s ease; font-size:.7rem; }
+  .sidebar .cluster-toggle.open .cluster-chevron{ transform:rotate(180deg); }
+  .sidebar .cluster-sub{ display:none; }
+  .sidebar .cluster-sub.show{ display:block; }
+  .sidebar .cluster-sub .nav-link{ margin:.4rem .5rem .4rem 1.1rem; padding:.42rem .75rem; padding-left:.4rem;
+                                   border-left:2px solid rgba(255,255,255,.18); border-radius:0 10px 10px 0; font-size:.85rem; }
+  .sidebar .cluster-sub .nav-link i{ font-size:.85rem; }
+  .sidebar-footer{ position:absolute; bottom:0; left:0; right:0; padding:1rem 1.25rem; font-size:.75rem;
+                   color:rgba(255,255,255,.5); background:rgba(0,0,0,.12); }
+  .side-backdrop{ position:fixed; inset:0; z-index:1040; background:rgba(0,0,0,.4); opacity:0; visibility:hidden; transition:opacity .25s ease; }
+  .side-backdrop.show{ opacity:1; visibility:visible; }
+  .main-shell{ transition:margin-left .25s ease; }
+  @media (min-width: 992px){
+    .sidebar{ transform:none; box-shadow:none; }
+    .sidebar .sidebar-close{ display:none; }
+    .main-shell{ margin-left:260px; }
+  }
+  footer{ color:#9aa19a; font-size:.8rem; }
+</style>
+</head>
+<body>
+{% set active_unit = request.view_args.get('unit_name') if request.view_args else None %}
+{% set unit_icons = {
+    'Sir Q Expense': 'fa-user-tie',
+    'Management': 'fa-briefcase',
+    'Cluster1': 'fa-diagram-project',
+    'Cluster2': 'fa-cubes-stacked',
+    'Cluster3': 'fa-layer-group',
+    'Cluster4': 'fa-network-wired',
+    'Cluster5': 'fa-object-group',
+    'Cluster6': 'fa-th-large',
+    'Internal Audit': 'fa-magnifying-glass-chart',
+} %}
+
+<aside class="sidebar" id="sideMenu">
+  <div class="sidebar-brand">
+    <div class="brand-badge"><i class="fa-solid fa-wallet"></i></div>
+    <span>Revolving Fund</span>
+    <button type="button" class="btn-close btn-close-white ms-auto sidebar-close" id="sideClose" aria-label="Close"></button>
+  </div>
+  <div class="nav-section">Overview</div>
+  <ul class="nav flex-column mb-2">
+    <li class="nav-item">
+      <a class="nav-link {{ 'active' if request.endpoint=='dashboard' }}" href="{{ url_for('dashboard') }}">
+        <i class="fa-solid fa-gauge-high"></i>Dashboard
+      </a>
+    </li>
+  </ul>
+  <div class="nav-section">Ledgers</div>
+  <ul class="nav flex-column mb-5">
+    {% for u in ['Sir Q Expense', 'Management'] %}
+    <li class="nav-item">
+      <a class="nav-link {{ 'active' if active_unit==u }}" href="{{ url_for('unit_ledger', unit_name=u) }}">
+        <i class="fa-solid {{ unit_icons[u] }}"></i>{{ u }}
+      </a>
+    </li>
+    {% endfor %}
+    <li class="nav-item">
+      <a class="nav-link cluster-toggle {{ 'active open' if active_unit and active_unit.startswith('Cluster') }}" href="javascript:void(0)">
+        <i class="fa-solid fa-diagram-project"></i>Clusters
+        <i class="fa-solid fa-chevron-down ms-auto cluster-chevron"></i>
+      </a>
+      <ul class="nav flex-column cluster-sub {{ 'show' if active_unit and active_unit.startswith('Cluster') }}">
+        {% for n in range(1, 7) %}
+        {% set c = 'Cluster' ~ n %}
+        <li class="nav-item">
+          <a class="nav-link {{ 'active' if active_unit==c }}" href="{{ url_for('unit_ledger', unit_name=c) }}">
+            <i class="fa-solid fa-diagram-project"></i>{{ c }}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {{ 'active' if active_unit=='Internal Audit' }}" href="{{ url_for('unit_ledger', unit_name='Internal Audit') }}">
+        <i class="fa-solid fa-magnifying-glass-chart"></i>Internal Audit
+      </a>
+    </li>
+  </ul>
+  <div class="sidebar-footer">
+    <div class="d-flex align-items-center justify-content-between">
+      <span><i class="fa-solid fa-circle-user me-1"></i>{{ current_user or 'Guest' }}</span>
+      <a href="{{ url_for('logout') }}" class="text-white text-decoration-none" title="Logout">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </a>
+    </div>
+    <div class="mt-1">Revolving Fund Expense Tracker</div>
+  </div>
+</aside>
+<div class="side-backdrop" id="sideBackdrop"></div>
+
+<div class="main-shell">
+  <div class="bg-brand px-3 py-2 d-flex align-items-center d-lg-none">
+    <button class="btn btn-outline-light btn-sm" type="button" id="sideToggle">
+      <i class="fa-solid fa-bars me-1"></i>Menu
+    </button>
+    <span class="ms-2 text-white fw-semibold"><i class="fa-solid fa-wallet me-1"></i>Revolving Fund</span>
+  </div>
+  <div class="p-3 p-md-4 pb-5">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'danger' if category=='danger' else category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+    <footer class="mt-5 text-center">Revolving Fund Expense Tracker &middot; converted from Google Sheets</footer>
+  </div>
+</div>
+<script>
+  const side = document.getElementById('sideMenu');
+  const backdrop = document.getElementById('sideBackdrop');
+  const toggle = document.getElementById('sideToggle');
+  const close = document.getElementById('sideClose');
+  function openSide(open){
+    side.classList.toggle('open', open);
+    backdrop.classList.toggle('show', open);
+  }
+  toggle.addEventListener('click', () => openSide(true));
+  close.addEventListener('click', () => openSide(false));
+  backdrop.addEventListener('click', () => openSide(false));
+  const clusterToggle = side.querySelector('.cluster-toggle');
+  const clusterSub = side.querySelector('.cluster-sub');
+  clusterToggle.addEventListener('click', () => {
+    clusterToggle.classList.toggle('open');
+    clusterSub.classList.toggle('show');
+  });
+  side.querySelectorAll('.nav-link:not(.cluster-toggle)').forEach(a => a.addEventListener('click', () => openSide(false)));
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard · Revolving Fund{% endblock %}
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end mb-4">
+  <div>
+    <h3 class="page-title mb-1"><i class="fa-solid fa-gauge-high me-2"></i>Expense Dashboard Summary</h3>
+    <div class="page-sub">Revolving Fund · Auto-updates from Sheets 2–9: Sir Q Expense, Management, Cluster1–6, Internal Audit</div>
+  </div>
+  <form class="d-flex gap-2 align-items-center mt-3 mt-md-0" method="get" action="{{ url_for('dashboard') }}">
+    <select name="month" class="form-select form-select-sm" style="width:auto">
+      {% for m in range(1,13) %}
+        <option value="{{ m }}" {% if m==month %}selected{% endif %}>{{ ['','January','February','March','April','May','June','July','August','September','October','November','December'][m] }}</option>
+      {% endfor %}
+    </select>
+    <select name="year" class="form-select form-select-sm" style="width:auto">
+      {% for y in range(year-2, year+2) %}
+        <option value="{{ y }}" {% if y==year %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-sm btn-brand" type="submit">View</button>
+  </form>
+</div>
+
+<!-- KPI cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-1">
+      <i class="fa-solid fa-sack-dollar kpi-icon"></i>
+      <div class="kpi-label">Total Expenses</div>
+      <div class="kpi-value">₱{{ '{:,.2f}'.format(key_metrics.total_expenses) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-2">
+      <i class="fa-solid fa-list-check kpi-icon"></i>
+      <div class="kpi-label">No. of Transactions</div>
+      <div class="kpi-value">{{ key_metrics.num_transactions }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-3">
+      <i class="fa-solid fa-van-shuttle kpi-icon"></i>
+      <div class="kpi-label">Transportation &amp; Travel</div>
+      <div class="kpi-value">₱{{ '{:,.2f}'.format(key_metrics.transportation) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-4">
+      <i class="fa-solid fa-utensils kpi-icon"></i>
+      <div class="kpi-label">Meal Allowance</div>
+      <div class="kpi-value">₱{{ '{:,.2f}'.format(key_metrics.meal) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-5">
+      <i class="fa-solid fa-house-chimney kpi-icon"></i>
+      <div class="kpi-label">Housing Allowance</div>
+      <div class="kpi-value">₱{{ '{:,.2f}'.format(key_metrics.housing) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-6">
+      <i class="fa-solid fa-droplet kpi-icon"></i>
+      <div class="kpi-label">Water</div>
+      <div class="kpi-value">₱{{ '{:,.2f}'.format(key_metrics.water) }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-7">
+      <i class="fa-solid fa-shapes kpi-icon"></i>
+      <div class="kpi-label">Miscellaneous</div>
+      <div class="kpi-value">₱{{ '{:,.2f}'.format(key_metrics.misc) }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Expenses by account type per unit -->
+<div class="card p-3 mb-4">
+  <h6 class="text-brand mb-3"><i class="fa-solid fa-table-list me-2"></i>Expenses by Account Type — Per Unit ({{ month_label }} {{ year }})</h6>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th>Unit</th>
+          {% for key, label in cols %}<th class="text-end">{{ label }} (₱)</th>{% endfor %}
+          <th class="text-end">Total (₱)</th>
+          <th class="text-end">% of Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in unit_rows %}
+        <tr>
+          <td><a href="{{ url_for('unit_ledger', unit_name=row.unit) }}">{{ row.unit }}</a></td>
+          {% for key, label in cols %}<td class="text-end">{{ '{:,.2f}'.format(row.amounts[key]) }}</td>{% endfor %}
+          <td class="text-end fw-semibold">{{ '{:,.2f}'.format(row.total) }}</td>
+          <td class="text-end">{{ '{:.1f}'.format(row.pct) }}%</td>
+        </tr>
+        {% endfor %}
+        <tr class="table-grand">
+          <td>GRAND TOTAL</td>
+          {% for key, label in cols %}<td class="text-end">{{ '{:,.2f}'.format(grand_totals[key]) }}</td>{% endfor %}
+          <td class="text-end">{{ '{:,.2f}'.format(grand_total_all) }}</td>
+          <td class="text-end">100.0%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Summary expense per month -->
+<div class="card p-3 mb-4">
+  <h6 class="text-brand mb-3"><i class="fa-solid fa-calendar-days me-2"></i>Summary Expense per Month ({{ year }})</h6>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th>Month</th>
+          {% for key, label in cols %}<th class="text-end">{{ label }} (₱)</th>{% endfor %}
+          <th class="text-end">Total (₱)</th>
+          <th class="text-end">% of Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in monthly_rows %}
+        <tr class="{% if row.month == month %}table-active{% endif %}">
+          <td><a href="{{ url_for('dashboard', year=year, month=row.month) }}">{{ row.label }}</a></td>
+          {% for key, label in cols %}<td class="text-end">{{ '{:,.2f}'.format(row.amounts[key]) }}</td>{% endfor %}
+          <td class="text-end fw-semibold">{{ '{:,.2f}'.format(row.total) }}</td>
+          <td class="text-end">{{ '{:.1f}'.format(row.pct) }}%</td>
+        </tr>
+        {% endfor %}
+        <tr class="table-grand">
+          <td>GRAND TOTAL</td>
+          {% for key, label in cols %}<td class="text-end">{{ '{:,.2f}'.format(year_grand[key]) }}</td>{% endfor %}
+          <td class="text-end">{{ '{:,.2f}'.format(year_grand_total) }}</td>
+          <td class="text-end">100.0%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="text-muted small mt-2">Auto-updates from Sheets 2–9: Sir Q Expense, Management, Cluster1–6, Internal Audit &middot; Prepared by: Jenny Rose Ando</div>
+</div>
+
+{% endblock %}

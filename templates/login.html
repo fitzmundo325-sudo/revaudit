@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login · Revolving Fund</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<style>
+  :root{
+    --brand: #245136;
+    --brand-dark: #1a3d27;
+    --brand-deep: #14301f;
+    --accent: #c98b3a;
+    --accent-dark: #b07a28;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --line: #e5e9e3;
+  }
+  body{ font-family:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif; -webkit-font-smoothing:antialiased;
+        min-height:100vh; background:linear-gradient(135deg, var(--brand-deep) 0%, var(--brand) 55%, #3d6b45 100%);
+        display:flex; align-items:center; justify-content:center; padding:1rem; }
+  .login-card{ width:100%; max-width:400px; background:#fff; border-radius:18px; padding:2.2rem 2.2rem 2rem;
+               box-shadow:0 20px 50px rgba(0,0,0,.35); }
+  .brand-badge{ width:52px; height:52px; border-radius:14px; background:linear-gradient(135deg, var(--accent), var(--accent-dark));
+                display:flex; align-items:center; justify-content:center; font-size:1.4rem; color:#fff;
+                box-shadow:0 6px 16px rgba(201,139,58,.45); margin:0 auto 1rem; }
+  .login-title{ font-weight:800; letter-spacing:-.01em; color:var(--ink); font-size:1.4rem; }
+  .login-sub{ color:var(--muted); font-size:.875rem; }
+  .form-label{ font-weight:600; font-size:.8rem; color:#374151; }
+  .form-control{ border-radius:.6rem; padding:.65rem .9rem; border-color:#d8ded8; }
+  .form-control:focus{ border-color:var(--brand); box-shadow:0 0 0 .2rem rgba(36,81,54,.15); }
+  .btn-brand{ background-color:var(--brand); border-color:var(--brand); color:#fff; border-radius:.6rem;
+              padding:.65rem 1rem; font-weight:600; box-shadow:0 4px 12px rgba(36,81,54,.3); }
+  .btn-brand:hover{ background-color:var(--brand-dark); border-color:var(--brand-dark); color:#fff; }
+  .login-foot{ font-size:.75rem; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="login-card">
+  <div class="text-center mb-4">
+    <div class="brand-badge"><i class="fa-solid fa-wallet"></i></div>
+    <h1 class="login-title mb-1">Revolving Fund</h1>
+    <div class="login-sub">Expense Tracker &middot; Sign in to continue</div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category=='danger' else category }} alert-dismissible fade show py-2 small" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post" action="{{ url_for('login') }}">
+    <div class="mb-3">
+      <label class="form-label" for="username">Username</label>
+      <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" required autofocus>
+    </div>
+    <div class="mb-4">
+      <label class="form-label" for="password">Password</label>
+      <input type="password" class="form-control" id="password" name="password" placeholder="Enter password" required>
+    </div>
+    <button type="submit" class="btn btn-brand w-100">
+      <i class="fa-solid fa-right-to-bracket me-2"></i>Sign In
+    </button>
+  </form>
+
+  <div class="text-center login-foot mt-4">Protected area &middot; Unauthorized access is prohibited</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
