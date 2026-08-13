@@ -75,6 +75,16 @@
   </div>
 </div>
 
+<!-- Pie chart: expense breakdown by account type -->
+<div class="card p-3 mb-4">
+  <h6 class="text-brand mb-3"><i class="fa-solid fa-chart-pie me-2"></i>Expense Breakdown by Account Type ({{ month_label }} {{ year }})</h6>
+  {% if grand_total_all > 0 %}
+  <div style="position:relative; height:360px;"><canvas id="pieChart"></canvas></div>
+  {% else %}
+  <div class="text-muted small">No expenses recorded for {{ month_label }} {{ year }}.</div>
+  {% endif %}
+</div>
+
 <!-- Expenses by account type per unit -->
 <div class="card p-3 mb-4">
   <h6 class="text-brand mb-3"><i class="fa-solid fa-table-list me-2"></i>Expenses by Account Type — Per Unit ({{ month_label }} {{ year }})</h6>
@@ -142,4 +152,71 @@
   <div class="text-muted small mt-2">Auto-updates from Sheets 2–9: Sir Q Expense, Management, Cluster1–6, Internal Audit &middot; Prepared by: Jenny Rose Ando</div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  var canvas = document.getElementById('pieChart');
+  if (!canvas) return;
+  var labels = [{% for key, label in cols %}[{{ key|tojson }}, {{ label|tojson }}]{% if not loop.last %},{% endif %}{% endfor %}];
+  var values = [{% for key, label in cols %}{{ grand_totals[key] }}{% if not loop.last %},{% endif %}{% endfor %}];
+  var colors = ['#245136', '#c98b3a', '#3d6b45', '#4a90a4', '#7d7d7d'];
+
+  new Chart(canvas.getContext('2d'), {
+    type: 'pie',
+    data: {
+      labels: labels.map(function (l) { return l[1]; }),
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderColor: '#ffffff',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            font: { family: 'Inter', size: 13 },
+            color: '#1f2937',
+            padding: 14,
+            usePointStyle: true,
+            generateLabels: function (chart) {
+              var data = chart.data;
+              var ds = data.datasets[0];
+              var total = ds.data.reduce(function (a, b) { return a + b; }, 0);
+              return data.labels.map(function (label, i) {
+                var value = ds.data[i];
+                var pct = total ? (value / total * 100).toFixed(1) : '0.0';
+                return {
+                  text: label + ': \u20B1' + value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' (' + pct + '%)',
+                  fillStyle: ds.backgroundColor[i],
+                  strokeStyle: ds.backgroundColor[i],
+                  hidden: !!chart.getDatasetMeta(0).data[i] && chart.getDatasetMeta(0).data[i].hidden,
+                  index: i,
+                  pointStyle: 'circle'
+                };
+              });
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function (item) {
+              var total = item.dataset.data.reduce(function (a, b) { return a + b; }, 0);
+              var pct = total ? (item.parsed / total * 100).toFixed(1) : '0.0';
+              return ' \u20B1' + item.parsed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' (' + pct + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
+})();
+</script>
 {% endblock %}

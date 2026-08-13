@@ -254,7 +254,14 @@ def register_routes(app):
     @app.route('/dashboard')
     @login_required
     def dashboard():
-        today = date.today()
+        if 'month' not in request.args or 'year' not in request.args:
+            latest = Expense.query.order_by(Expense.trxn_date.desc().nullslast()).first()
+            if latest and latest.trxn_date:
+                today = latest.trxn_date
+            else:
+                today = date.today()
+        else:
+            today = date.today()
         year = request.args.get('year', type=int, default=today.year)
         month = request.args.get('month', type=int, default=today.month)
         data = build_dashboard(year, month)
