@@ -11,6 +11,17 @@
     <a href="{{ url_for('export_csv', unit_name=unit) }}" class="btn btn-outline-secondary btn-sm">
       <i class="fa-solid fa-download me-1"></i>Export CSV
     </a>
+    <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#importModal">
+      <i class="fa-solid fa-file-import me-1"></i>Import Excel
+    </button>
+    {% if last_import %}
+    <form method="post" action="{{ url_for('delete_import', unit_name=unit) }}" class="d-inline"
+          onsubmit="return confirm('Delete the {{ last_import.count }} row(s) from the last import?');">
+      <button class="btn btn-outline-danger btn-sm" type="submit">
+        <i class="fa-solid fa-trash-can me-1"></i>Delete Last Import ({{ last_import.count }})
+      </button>
+    </form>
+    {% endif %}
     <button class="btn btn-brand btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
       <i class="fa-solid fa-plus me-1"></i>Add Entry
     </button>
@@ -30,6 +41,7 @@
       <thead>
         <tr>
           <th>Payee</th>
+          <th>Trxn Code</th>
           <th>Branch</th>
           <th>Trxn Date</th>
           <th>Particulars</th>
@@ -45,6 +57,7 @@
         {% for e in entries %}
         <tr>
           <td>{{ e.payee }}</td>
+          <td>{{ e.trxn_code or '' }}</td>
           <td>{{ e.branch or '' }}</td>
           <td>{{ e.trxn_date.strftime('%Y-%m-%d') if e.trxn_date else '' }}</td>
           <td style="max-width:260px;white-space:normal;">{{ e.particulars or '' }}</td>
@@ -61,17 +74,39 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="10" class="text-center text-muted py-4">No entries yet for this unit.</td></tr>
+        <tr><td colspan="11" class="text-center text-muted py-4">No entries yet for this unit.</td></tr>
         {% endfor %}
       </tbody>
       <tfoot>
         <tr class="table-grand">
-          <td colspan="8">TOTAL EXPENSES</td>
+          <td colspan="9">TOTAL EXPENSES</td>
           <td class="text-end">{{ '{:,.2f}'.format(total) }}</td>
           <td></td>
         </tr>
       </tfoot>
     </table>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="post" action="{{ url_for('import_entries', unit_name=unit) }}" enctype="multipart/form-data">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Import Excel — {{ unit }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-2">Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file. The header row is auto-detected and columns are matched flexibly.</p>
+        <input type="file" name="file" class="form-control" accept=".xlsx,.xlsm,.csv" required>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-brand"><i class="fa-solid fa-file-import me-1"></i>Import</button>
+      </div>
+    </div>
+    </form>
   </div>
 </div>
 

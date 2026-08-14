@@ -2,11 +2,15 @@
 <div class="row g-3">
   <div class="col-md-6">
     <label class="form-label">Payee</label>
-    <input type="text" name="payee" class="form-control" value="{{ e.payee if e else '' }}" required>
+    <input type="text" name="payee" class="form-control" value="{{ e.payee if e and e.payee else '' }}" required>
+  </div>
+  <div class="col-md-6">
+    <label class="form-label">Trxn Code</label>
+    <input type="text" name="trxn_code" class="form-control" value="{{ e.trxn_code if e and e.trxn_code else '' }}">
   </div>
   <div class="col-md-3">
     <label class="form-label">Branch</label>
-    <input type="text" name="branch" class="form-control" value="{{ e.branch if e else '' }}">
+    <input type="text" name="branch" class="form-control" value="{{ e.branch if e and e.branch else '' }}">
   </div>
   <div class="col-md-3">
     <label class="form-label">Transaction Date</label>
@@ -14,11 +18,11 @@
   </div>
   <div class="col-12">
     <label class="form-label">Particulars</label>
-    <textarea name="particulars" class="form-control" rows="2">{{ e.particulars if e else '' }}</textarea>
+    <textarea name="particulars" class="form-control" rows="2">{{ e.particulars if e and e.particulars else '' }}</textarea>
   </div>
   <div class="col-md-4">
     <label class="form-label">Ref#</label>
-    <input type="text" name="ref_no" class="form-control" value="{{ e.ref_no if e else '' }}">
+    <input type="text" name="ref_no" class="form-control" value="{{ e.ref_no if e and e.ref_no else '' }}">
   </div>
   <div class="col-md-4">
     <label class="form-label">Account Title</label>
@@ -31,18 +35,18 @@
   </div>
   <div class="col-md-4">
     <label class="form-label">Amount (₱)</label>
-    <input type="number" step="0.01" min="0" name="amount" class="form-control" value="{{ e.amount if e else '' }}" required>
+    <input type="number" step="0.01" min="0" name="amount" class="form-control" value="{{ e.amount if e and e.amount is not none else '' }}" required>
   </div>
   <div class="col-md-6">
     <label class="form-label">TIN</label>
-    <input type="text" name="tin" class="form-control" value="{{ e.tin if e else '' }}">
+    <input type="text" name="tin" class="form-control" value="{{ e.tin if e and e.tin else '' }}">
   </div>
   <div class="col-md-6">
     <label class="form-label">Address</label>
-    <input type="text" name="address" class="form-control" value="{{ e.address if e else '' }}">
+    <input type="text" name="address" class="form-control" value="{{ e.address if e and e.address else '' }}">
   </div>
   <div class="col-md-6">
     <label class="form-label">Prepared By</label>
-    <input type="text" name="prepared_by" class="form-control" value="{{ e.prepared_by if e else 'Jenny Rose Ando' }}">
+    <input type="text" name="prepared_by" class="form-control" value="{{ e.prepared_by if e and e.prepared_by else 'Jenny Rose Ando' }}">
   </div>
 </div>
