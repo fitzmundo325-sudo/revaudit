@@ -39,42 +39,27 @@ def _load_local_env():
         os.environ.setdefault(key, value)
 
 
-def _ensure_user_role_column():
-    with db.engine.connect() as conn:
-        existing_columns = {
-            row[1]
-            for row in conn.execute(text("PRAGMA table_info('users')")).fetchall()
-        }
+def _ensure_column(table_name, column_def):
+    from sqlalchemy import inspect
 
-        if 'role' not in existing_columns:
-            conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(100) NOT NULL DEFAULT 'Admin'"))
-        conn.commit()
+    existing_columns = {col['name'] for col in inspect(db.engine).get_columns(table_name)}
+    if column_def.split()[0] not in existing_columns:
+        with db.engine.connect() as conn:
+            conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_def}"))
+            conn.commit()
+
+
+def _ensure_user_role_column():
+    _ensure_column('users', "role VARCHAR(100) NOT NULL DEFAULT 'Admin'")
 
 
 def _ensure_user_presence_column():
-    with db.engine.connect() as conn:
-        existing_columns = {
-            row[1]
-            for row in conn.execute(text("PRAGMA table_info('users')")).fetchall()
-        }
-
-        if 'last_activity_at' not in existing_columns:
-            conn.execute(text("ALTER TABLE users ADD COLUMN last_activity_at DATETIME"))
-        if 'last_login_at' not in existing_columns:
-            conn.execute(text("ALTER TABLE users ADD COLUMN last_login_at DATETIME"))
-        conn.commit()
+    _ensure_column('users', 'last_activity_at DATETIME')
+    _ensure_column('users', 'last_login_at DATETIME')
 
 
 def _ensure_expense_trxn_code_column():
-    with db.engine.connect() as conn:
-        existing_columns = {
-            row[1]
-            for row in conn.execute(text("PRAGMA table_info('expenses')")).fetchall()
-        }
-
-        if 'trxn_code' not in existing_columns:
-            conn.execute(text("ALTER TABLE expenses ADD COLUMN trxn_code VARCHAR(128)"))
-        conn.commit()
+    _ensure_column('expenses', 'trxn_code VARCHAR(128)')
 
 
 def seed_if_empty():
@@ -123,7 +108,9 @@ def create_app():
         template_folder=str(project_root / 'templates'),
         static_folder=str(project_root / 'static'),
     )
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(app.instance_path, DB_NAME)
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('REVFUND_DB_URI') or (
+        'sqlite:///' + os.path.join(app.instance_path, DB_NAME)
+    )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     configured_secret_key = os.environ.get('REVFUND_SECRET_KEY')
     secret_key = configured_secret_key
