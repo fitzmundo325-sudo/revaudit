@@ -24,21 +24,47 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Then open http://localhost:5000 — it redirects to the dashboard.
+Then open http://localhost:5000 — it redirects to the dashboard. Default login:
+`Jenny` / `jenny_081226` (role: Admin).
 
 ## Structure
 
 ```
-app.py                 # Flask app, models, routes
+app.py                 # Entry point: from revfund import create_app
+revfund/
+  __init__.py          # App factory: config, .env, secrets, db, cache, login
+                       # manager, maintenance mode, idle timeout, error handlers
+  models.py            # User, Expense, AuditLog, SystemSecret, MaintenanceMode
+  auth.py              # Blueprint: login / logout (role-based)
+  views.py             # Blueprint: dashboard, unit ledgers, CRUD, import/export,
+                       # audit log viewer
+  api_handles.py       # Blueprint: /apis/expenses, /apis/units, /apis/accounts
+  audit.py             # Tamper-evident hash-chained audit logging
 seed_data.json          # One-time seed data extracted from the original xlsx
 templates/
-  base.html              # Layout / navbar
+  base.html              # Layout / navbar (role-aware sidebar)
+  login.html             # Sign-in page
   dashboard.html          # Dashboard (KPIs + summary tables)
   ledger.html             # Per-unit ledger with add/edit/delete modals
   entry_fields.html       # Shared form fields for add/edit
+  audit_logs.html         # Admin: audit trail with tamper detection
+  maintenance.html        # Maintenance-mode page
 instance/
   revfund.db              # SQLite database (created automatically on first run)
 ```
+
+## Foundation (ported from the CFI count system)
+
+- Flask app-factory + blueprint package layout.
+- `flask-login` auth with user roles (Admin, Viewer, ...). New users default to
+  `Admin`; the `role` column is added to existing databases automatically.
+- `.env` support: `REVFUND_SECRET_KEY` (falls back to a key persisted in the
+  `system_secret` table) and `SESSION_IDLE_TIMEOUT_SECONDS` (default 15 min).
+- Additive SQLite migrations (`_ensure_*_columns()` PRAGMA helpers) — existing
+  data is never dropped.
+- Tamper-evident audit log (SHA-256 hash chain) for logins, CRUD, imports and
+  application errors; verified on the Audit Logs page.
+- Maintenance mode, idle-session auto-logout, presence tracking, Flask-Caching.
 
 ## Notes / next steps
 

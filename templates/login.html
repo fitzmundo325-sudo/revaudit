@@ -50,7 +50,7 @@
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}
-        <div class="alert alert-{{ 'danger' if category=='danger' else category }} alert-dismissible fade show py-2 small" role="alert">
+        <div class="alert alert-{{ 'danger' if category in ['danger','error'] else category }} alert-dismissible fade show py-2 small" role="alert">
           {{ message }}
           <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
@@ -58,7 +58,7 @@
     {% endif %}
   {% endwith %}
 
-  <form method="post" action="{{ url_for('login') }}">
+  <form method="post" action="{{ url_for('auth.login') }}">
     <div class="mb-3">
       <label class="form-label" for="username">Username</label>
       <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" required autofocus>

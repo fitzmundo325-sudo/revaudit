@@ -7,7 +7,7 @@
     <h3 class="page-title mb-1"><i class="fa-solid fa-gauge-high me-2"></i>Expense Dashboard Summary</h3>
     <div class="page-sub">Revolving Fund · Auto-updates from Sheets 2–9: Sir Q Expense, Management, Cluster1–6, Internal Audit</div>
   </div>
-  <form class="d-flex gap-2 align-items-center mt-3 mt-md-0" method="get" action="{{ url_for('dashboard') }}">
+  <form class="d-flex gap-2 align-items-center mt-3 mt-md-0" method="get" action="{{ url_for('views.dashboard') }}">
     <select name="month" class="form-select form-select-sm" style="width:auto">
       {% for m in range(1,13) %}
         <option value="{{ m }}" {% if m==month %}selected{% endif %}>{{ ['','January','February','March','April','May','June','July','August','September','October','November','December'][m] }}</option>
@@ -101,7 +101,7 @@
       <tbody>
         {% for row in unit_rows %}
         <tr>
-          <td><a href="{{ url_for('unit_ledger', unit_name=row.unit) }}">{{ row.unit }}</a></td>
+          <td><a href="{{ url_for('views.unit_ledger', unit_name=row.unit) }}">{{ row.unit }}</a></td>
           {% for key, label in cols %}<td class="text-end">{{ '{:,.2f}'.format(row.amounts[key]) }}</td>{% endfor %}
           <td class="text-end fw-semibold">{{ '{:,.2f}'.format(row.total) }}</td>
           <td class="text-end">{{ '{:.1f}'.format(row.pct) }}%</td>
@@ -134,7 +134,7 @@
       <tbody>
         {% for row in monthly_rows %}
         <tr class="{% if row.month == month %}table-active{% endif %}">
-          <td><a href="{{ url_for('dashboard', year=year, month=row.month) }}">{{ row.label }}</a></td>
+          <td><a href="{{ url_for('views.dashboard', year=year, month=row.month) }}">{{ row.label }}</a></td>
           {% for key, label in cols %}<td class="text-end">{{ '{:,.2f}'.format(row.amounts[key]) }}</td>{% endfor %}
           <td class="text-end fw-semibold">{{ '{:,.2f}'.format(row.total) }}</td>
           <td class="text-end">{{ '{:.1f}'.format(row.pct) }}%</td>

@@ -107,6 +107,31 @@
     .main-shell{ margin-left:260px; }
   }
   footer{ color:#9aa19a; font-size:.8rem; }
+
+  /* SPA Centered Page Loading Overlay */
+  #spa-loading-overlay{
+    position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(243,246,242,.85); backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px);
+    opacity:0; pointer-events:none; transition:opacity .12s ease;
+  }
+  @media (min-width: 992px){
+    #spa-loading-overlay{ left:260px; }
+  }
+  #spa-loading-overlay.spa-visible{
+    opacity:1; pointer-events:all;
+  }
+  .spa-spinner{
+    width:44px; height:44px; border:3.5px solid #d5e2d3; border-top-color:var(--brand);
+    border-radius:50%; animation:spa-spin .7s linear infinite;
+  }
+  @keyframes spa-spin{ to{ transform:rotate(360deg); } }
+  @keyframes spa-content-in{
+    from{ opacity:0; }
+    to{ opacity:1; }
+  }
+  .spa-content-enter{ animation:spa-content-in .2s ease; }
 </style>
 </head>
 <body>
@@ -132,7 +157,7 @@
   <div class="nav-section">Overview</div>
   <ul class="nav flex-column mb-2">
     <li class="nav-item">
-      <a class="nav-link {{ 'active' if request.endpoint=='dashboard' }}" href="{{ url_for('dashboard') }}">
+      <a class="nav-link {{ 'active' if request.endpoint=='views.dashboard' }}" href="{{ url_for('views.dashboard') }}">
         <i class="fa-solid fa-gauge-high"></i>Dashboard
       </a>
     </li>
@@ -141,7 +166,7 @@
   <ul class="nav flex-column mb-5">
     {% for u in ['Sir Q Expense', 'Management'] %}
     <li class="nav-item">
-      <a class="nav-link {{ 'active' if active_unit==u }}" href="{{ url_for('unit_ledger', unit_name=u) }}">
+      <a class="nav-link {{ 'active' if active_unit==u }}" href="{{ url_for('views.unit_ledger', unit_name=u) }}">
         <i class="fa-solid {{ unit_icons[u] }}"></i>{{ u }}
       </a>
     </li>
@@ -155,7 +180,7 @@
         {% for n in range(1, 7) %}
         {% set c = 'Cluster' ~ n %}
         <li class="nav-item">
-          <a class="nav-link {{ 'active' if active_unit==c }}" href="{{ url_for('unit_ledger', unit_name=c) }}">
+          <a class="nav-link {{ 'active' if active_unit==c }}" href="{{ url_for('views.unit_ledger', unit_name=c) }}">
             <i class="fa-solid fa-diagram-project"></i>{{ c }}
           </a>
         </li>
@@ -163,15 +188,25 @@
       </ul>
     </li>
     <li class="nav-item">
-      <a class="nav-link {{ 'active' if active_unit=='Internal Audit' }}" href="{{ url_for('unit_ledger', unit_name='Internal Audit') }}">
+      <a class="nav-link {{ 'active' if active_unit=='Internal Audit' }}" href="{{ url_for('views.unit_ledger', unit_name='Internal Audit') }}">
         <i class="fa-solid fa-magnifying-glass-chart"></i>Internal Audit
       </a>
     </li>
   </ul>
+  {% if current_user.is_authenticated and current_user.role in ['Superadmin', 'General Manager', 'Admin', 'Auditor'] %}
+  <div class="nav-section">Administration</div>
+  <ul class="nav flex-column mb-2">
+    <li class="nav-item">
+      <a class="nav-link {{ 'active' if request.endpoint=='views.audit_logs' }}" href="{{ url_for('views.audit_logs') }}">
+        <i class="fa-solid fa-shield-halved"></i>Audit Logs
+      </a>
+    </li>
+  </ul>
+  {% endif %}
   <div class="sidebar-footer">
     <div class="d-flex align-items-center justify-content-between">
-      <span><i class="fa-solid fa-circle-user me-1"></i>{{ current_user or 'Guest' }}</span>
-      <a href="{{ url_for('logout') }}" class="text-white text-decoration-none" title="Logout">
+      <span><i class="fa-solid fa-circle-user me-1"></i>{{ current_user.username if current_user.is_authenticated else 'Guest' }}<span class="ms-1 badge bg-warning-subtle text-dark">{{ current_user.role if current_user.is_authenticated else '' }}</span></span>
+      <a href="{{ url_for('auth.logout') }}" class="text-white text-decoration-none" title="Logout">
         <i class="fa-solid fa-right-from-bracket"></i>
       </a>
     </div>
@@ -187,11 +222,11 @@
     </button>
     <span class="ms-2 text-white fw-semibold"><i class="fa-solid fa-wallet me-1"></i>Revolving Fund</span>
   </div>
-  <div class="p-3 p-md-4 pb-5">
+  <div class="p-3 p-md-4 pb-5 spa-content-enter">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert-{{ 'danger' if category=='danger' else category }} alert-dismissible fade show" role="alert">
+          <div class="alert alert-{{ 'danger' if category in ['danger','error'] else category }} alert-dismissible fade show" role="alert">
             {{ message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
           </div>
@@ -202,6 +237,13 @@
     <footer class="mt-5 text-center">Revolving Fund Expense Tracker &middot; converted from Google Sheets</footer>
   </div>
 </div>
+
+<!-- SPA Centered Loading Overlay -->
+<div id="spa-loading-overlay" aria-hidden="true" class="spa-visible">
+  <div class="spa-spinner"></div>
+</div>
+
+<script src="{{ url_for('static', filename='js/spa_navigation.js') }}"></script>
 <script>
   const side = document.getElementById('sideMenu');
   const backdrop = document.getElementById('sideBackdrop');
