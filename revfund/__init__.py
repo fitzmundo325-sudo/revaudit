@@ -17,6 +17,16 @@ cache = Cache()
 
 PRIVILEGED_ROLES = ('Superadmin', 'General Manager', 'Admin', 'Auditor')
 
+# All selectable roles, in ascending order of privilege.
+ROLES = ('Encoder', 'Auditor', 'General Manager', 'Admin', 'Superadmin')
+
+# Roles allowed to manage user accounts (User Management page).
+USER_MANAGEMENT_ROLES = ('Superadmin', 'Admin')
+
+# Roles with view-only access: they can browse the dashboard, ledgers and
+# audit logs, but cannot add/edit/delete/import expense entries.
+VIEWER_ONLY_ROLES = ('General Manager',)
+
 DB_NAME = 'revfund.db'
 
 
@@ -110,7 +120,9 @@ def seed_user_if_empty():
 
     if User.query.first():
         return
-    db.session.add(User(username='Jenny', password_hash=generate_password_hash('jenny_081226'), role='Admin'))
+    db.session.add(User(username='Jenny', password_hash=generate_password_hash('jenny_081226'), role='Auditor'))
+    db.session.add(User(username='Queben', password_hash=generate_password_hash('qjdc.cfi'), role='General Manager'))
+    db.session.add(User(username='admin', password_hash=generate_password_hash('admin123'), role='Admin'))
     db.session.commit()
 
 
@@ -141,10 +153,12 @@ def create_app():
     from .views import views
     from .auth import auth
     from .api_handles import api_handles
+    from .user_admin import user_admin
 
     app.register_blueprint(auth, url_prefix='/')
     app.register_blueprint(views, url_prefix='/')
     app.register_blueprint(api_handles, url_prefix='/apis')
+    app.register_blueprint(user_admin, url_prefix='/')
 
     from .models import (
         User,
@@ -252,6 +266,13 @@ def create_app():
     def inject_maintenance_mode():
         mode = MaintenanceMode.query.first()
         return {'system_maintenance_mode': mode}
+
+    @app.context_processor
+    def inject_permissions():
+        return {
+            'can_modify_data': getattr(current_user, 'role', '') not in VIEWER_ONLY_ROLES
+                               if current_user.is_authenticated else True,
+        }
 
     LOCAL_UTC_OFFSET = timezone(timedelta(hours=8))
 

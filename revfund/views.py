@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash, Response, session
 from flask_login import login_required, current_user
 from .models import Expense, AuditLog
-from . import db
+from . import db, VIEWER_ONLY_ROLES
 from .audit import log_audit_event, verify_audit_chain, reset_audit_logs
 
 views = Blueprint('views', __name__)
@@ -94,18 +94,31 @@ def _is_admin():
     return getattr(current_user, 'role', '') in ('Superadmin', 'General Manager', 'Admin', 'Auditor')
 
 
+def _can_reset_audit_logs():
+    return getattr(current_user, 'role', '') in ('Superadmin', 'Admin')
+
+
+def _can_modify_data():
+    """Viewer-only roles (e.g. General Manager) can look but not touch."""
+    return getattr(current_user, 'role', '') not in VIEWER_ONLY_ROLES
+
+
 def parse_date(value):
     if not value:
         return None
+    if isinstance(value, datetime):
+        return value.date()
     if isinstance(value, date):
         return value
     if isinstance(value, (int, float)) and value > 20000:
         return (datetime(1899, 12, 30) + timedelta(days=value)).date()
-    for fmt in ('%Y-%m-%d', '%m/%d/%Y', '%m-%d-%Y', '%Y/%m/%d',
-                '%d/%m/%Y', '%d-%m-%Y', '%d %b %Y', '%b %d, %Y',
+    for fmt in ('%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M',
+                '%m/%d/%Y', '%m/%d/%y', '%m-%d-%Y', '%m-%d-%y',
+                '%Y/%m/%d', '%d/%m/%Y', '%d/%m/%y', '%d-%m-%Y', '%d-%m-%y',
+                '%d %b %Y', '%d %B %Y', '%b %d, %Y', '%B %d, %Y', '%b %d, %y',
                 '%d-%b-%Y', '%d/%b/%Y', '%b/%d/%Y'):
         try:
-            return datetime.strptime(value, fmt).date()
+            return datetime.strptime(str(value).strip(), fmt).date()
         except ValueError:
             continue
     return None
@@ -320,6 +333,9 @@ def unit_ledger(unit_name):
 @views.route('/unit/<unit_name>/add', methods=['POST'])
 @login_required
 def add_entry(unit_name):
+    if not _can_modify_data():
+        flash('Your role has view-only access to the ledgers.', 'danger')
+        return redirect(url_for('views.unit_ledger', unit_name=unit_name))
     if unit_name not in UNITS:
         return jsonify({'error': 'Unknown unit'}), 400
     form = request.form
@@ -358,6 +374,11 @@ def add_entry(unit_name):
 @views.route('/unit/<unit_name>/import', methods=['POST'])
 @login_required
 def import_entries(unit_name):
+    if not _can_modify_data():
+        flash('Your role has view-only access to the ledgers.', 'danger')
+        return redirect(url_for('views.unit_ledger', unit_name=unit_name))
+    import sys
+    print('IMPORT ROUTE HIT', unit_name, file=sys.stderr)
     if unit_name not in UNITS:
         flash('Unknown unit', 'danger')
         return redirect(url_for('views.dashboard'))
@@ -395,6 +416,7 @@ def import_entries(unit_name):
     skipped_incomplete = 0
     skipped_bad_title = 0
     skipped_total = 0
+    skipped_no_date = 0
     import_boundary = db.session.query(db.func.max(Expense.id)).scalar() or 0
     for row in rows:
         data = {}
@@ -412,11 +434,14 @@ def import_entries(unit_name):
         if account_title and account_title not in ACCOUNT_TITLES:
             skipped_bad_title += 1
             continue
+        trxn_date = parse_date(data.get('trxn_date'))
+        if trxn_date is None:
+            skipped_no_date += 1
         db.session.add(Expense(
             unit=unit_name,
             payee=payee,
             branch=parse_excel_value(data.get('branch')),
-            trxn_date=parse_date(data.get('trxn_date')),
+            trxn_date=trxn_date,
             particulars=parse_excel_value(data.get('particulars')),
             ref_no=parse_excel_value(data.get('ref_no')),
             trxn_code=parse_excel_value(data.get('trxn_code')),
@@ -430,6 +455,9 @@ def import_entries(unit_name):
     db.session.commit()
     capped = ' (stopped at 10,000 rows)' if len(rows) >= 10000 else ''
     message = f'Import complete: {imported} row(s) added{capped}.'
+    if skipped_no_date:
+        message += (f' {skipped_no_date} row(s) had unrecognized dates — '
+                    f'they appear in the ledger but not on the monthly dashboard.')
     if imported:
         session['last_import'] = {'unit': unit_name, 'min_id': import_boundary + 1, 'count': imported}
         log_audit_event(
@@ -447,6 +475,9 @@ def import_entries(unit_name):
 @views.route('/unit/<unit_name>/delete-import', methods=['POST'])
 @login_required
 def delete_import(unit_name):
+    if not _can_modify_data():
+        flash('Your role has view-only access to the ledgers.', 'danger')
+        return redirect(url_for('views.unit_ledger', unit_name=unit_name))
     if unit_name not in UNITS:
         return jsonify({'error': 'Unknown unit'}), 400
     last = session.get('last_import')
@@ -474,6 +505,9 @@ def delete_import(unit_name):
 @login_required
 def edit_entry(entry_id):
     entry = Expense.query.get_or_404(entry_id)
+    if not _can_modify_data():
+        flash('Your role has view-only access to the ledgers.', 'danger')
+        return redirect(url_for('views.unit_ledger', unit_name=entry.unit))
     form = request.form
     try:
         amount = float(form.get('amount', entry.amount) or 0)
@@ -510,6 +544,9 @@ def edit_entry(entry_id):
 @login_required
 def delete_entry(entry_id):
     entry = Expense.query.get_or_404(entry_id)
+    if not _can_modify_data():
+        flash('Your role has view-only access to the ledgers.', 'danger')
+        return redirect(url_for('views.unit_ledger', unit_name=entry.unit))
     unit_name = entry.unit
     snapshot = entry.to_dict()
     db.session.delete(entry)
@@ -551,13 +588,14 @@ def audit_logs():
         return redirect(url_for('views.dashboard'))
     logs = AuditLog.query.order_by(AuditLog.id.desc()).limit(500).all()
     tampered_ids = verify_audit_chain()
-    return render_template('audit_logs.html', logs=logs, tampered_ids=tampered_ids)
+    return render_template('audit_logs.html', logs=logs, tampered_ids=tampered_ids,
+                           can_reset_logs=_can_reset_audit_logs())
 
 
 @views.route('/admin/audit-logs/reset', methods=['POST'])
 @login_required
 def reset_audit_logs_route():
-    if not _is_admin():
+    if not _can_reset_audit_logs():
         flash('You do not have permission to reset audit logs.', 'danger')
         return redirect(url_for('views.dashboard'))
     

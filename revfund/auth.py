@@ -15,24 +15,41 @@ def login():
         password = request.form.get('password')
 
         user = User.query.filter_by(username=username).first()
+        if user is None and username:
+            # Deactivated accounts carry a 'deactivated:' prefix on their
+            # username; still recognize the login attempt so we can tell the
+            # ex-user their account was disabled (instead of "does not exist").
+            user = User.query.filter_by(username='deactivated:' + username).first()
         if user:
             if check_password_hash(user.password_hash, password):
-                flash('Logged in successfully!', category='success')
-                login_user(user, remember=True)
-                now = datetime.now(timezone.utc)
-                user.last_activity_at = now
-                user.last_login_at = now
-                session['_presence_touch_epoch'] = now.timestamp()
-                log_audit_event(
-                    action='auth.login.success',
-                    entity_type='User',
-                    entity_id=user.id,
-                    reason='User authenticated successfully.',
-                    details={'role': user.role},
-                    actor_user=user,
-                    commit=True,
-                )
-                return redirect(url_for('views.dashboard'))
+                if not user.is_active:
+                    log_audit_event(
+                        action='auth.login.failed',
+                        entity_type='User',
+                        entity_id=user.id,
+                        reason='Account is deactivated.',
+                        details={'username': username},
+                        actor_user=user,
+                        commit=True,
+                    )
+                    flash('This account has been deactivated. Contact an administrator.', category='error')
+                else:
+                    flash('Logged in successfully!', category='success')
+                    login_user(user, remember=True)
+                    now = datetime.now(timezone.utc)
+                    user.last_activity_at = now
+                    user.last_login_at = now
+                    session['_presence_touch_epoch'] = now.timestamp()
+                    log_audit_event(
+                        action='auth.login.success',
+                        entity_type='User',
+                        entity_id=user.id,
+                        reason='User authenticated successfully.',
+                        details={'role': user.role},
+                        actor_user=user,
+                        commit=True,
+                    )
+                    return redirect(url_for('views.dashboard'))
             else:
                 log_audit_event(
                     action='auth.login.failed',

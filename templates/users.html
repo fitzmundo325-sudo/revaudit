@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block title %}User Management · Revolving Fund{% endblock %}
+{% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end mb-4">
+  <div>
+    <h3 class="page-title mb-1"><i class="fa-solid fa-users-gear me-2"></i>User Management</h3>
+    <div class="page-sub">Add, edit and deactivate system accounts · all changes are audit-logged</div>
+  </div>
+  <button type="button" class="btn btn-brand btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
+    <i class="fa-solid fa-user-plus me-1"></i>Add User
+  </button>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-8">
+    <div class="card p-3 h-100">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Last Login</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr class="{{ 'text-muted' if not u.is_active }}">
+              <td>{{ u.id }}</td>
+              <td class="fw-semibold">
+                {{ u.username }}
+                {% if current_user.id == u.id %}<span class="badge bg-light text-dark border ms-1">you</span>{% endif %}
+              </td>
+              <td><span class="account-badge">{{ u.role }}</span></td>
+              <td>
+                {% if u.is_active %}
+                  <span class="badge bg-success-subtle text-success-emphasis">Active</span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary-emphasis">Deactivated</span>
+                {% endif %}
+              </td>
+              <td class="text-nowrap">{{ u.last_login_at | local_dt if u.last_login_at else '—' }}</td>
+              <td class="text-end text-nowrap">
+                <button type="button" class="btn btn-outline-secondary btn-sm"
+                        data-bs-toggle="modal" data-bs-target="#editUserModal"
+                        data-user-id="{{ u.id }}"
+                        data-user-username="{{ u.username }}"
+                        data-user-role="{{ u.role }}"
+                        data-user-active="{{ '1' if u.is_active else '0' }}"
+                        title="Edit user">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                {% if current_user.id != u.id %}
+                <form method="post" action="{{ url_for('user_admin.delete_user', user_id=u.id) }}" class="d-inline"
+                      onsubmit="return confirm('Delete user &quot;{{ u.username }}&quot;? Users with audit history must be deactivated instead.');">
+                  <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete user">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-4">No users found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card p-3 h-100">
+      <h6 class="fw-bold mb-2"><i class="fa-solid fa-circle-info me-1 text-brand"></i>Role permissions</h6>
+      <ul class="list-unstyled small mb-0">
+        <li class="mb-2"><span class="account-badge">Superadmin</span><br><span class="text-muted">Full access, including user management.</span></li>
+        <li class="mb-2"><span class="account-badge">Admin</span><br><span class="text-muted">Manage users, reset audit logs, full encoder access.</span></li>
+        <li class="mb-2"><span class="account-badge">General Manager</span><br><span class="text-muted">View-only: dashboard, ledgers and audit logs; bypasses maintenance mode.</span></li>
+        <li class="mb-2"><span class="account-badge">Auditor</span><br><span class="text-muted">View audit logs; full encoder access to ledgers.</span></li>
+        <li class="mb-0"><span class="account-badge">Encoder</span><br><span class="text-muted">Add and edit expense entries only.</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ url_for('user_admin.add_user') }}">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa-solid fa-user-plus me-2 text-brand"></i>Add User</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Username</label>
+          <input type="text" class="form-control" name="username" required maxlength="64" autocomplete="off">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <input type="text" class="form-control" name="password" required minlength="4" autocomplete="new-password">
+          <div class="form-text">Minimum 4 characters. Share it securely with the user.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Role</label>
+          <select class="form-select" name="role">
+            {% for r in roles %}
+            <option value="{{ r }}" {{ 'selected' if r == 'Encoder' }}>{{ r }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="is_active" id="addActive" checked>
+          <label class="form-check-label" for="addActive">Account active (can log in)</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-brand"><i class="fa-solid fa-check me-1"></i>Create User</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" id="editUserForm" method="post" action="">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa-solid fa-user-pen me-2 text-brand"></i>Edit User</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="user_id" id="editUserId">
+        <div class="mb-3">
+          <label class="form-label">Username</label>
+          <input type="text" class="form-control" name="username" id="editUsername" required maxlength="64" autocomplete="off">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">New Password <span class="text-muted">(leave blank to keep current)</span></label>
+          <input type="text" class="form-control" name="password" id="editPassword" minlength="4" autocomplete="new-password" placeholder="••••••••">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Role</label>
+          <select class="form-select" name="role" id="editRole">
+            {% for r in roles %}
+            <option value="{{ r }}">{{ r }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="is_active" id="editActive">
+          <label class="form-check-label" for="editActive">Account active (can log in)</label>
+          <div class="form-text">Deactivated users keep their audit history but cannot sign in.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-brand"><i class="fa-solid fa-check me-1"></i>Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var editModal = document.getElementById('editUserModal');
+    editModal.addEventListener('show.bs.modal', function (event) {
+      var btn = event.relatedTarget;
+      if (!btn) return;
+      var id = btn.getAttribute('data-user-id');
+      document.getElementById('editUserId').value = id;
+      document.getElementById('editUsername').value = btn.getAttribute('data-user-username');
+      document.getElementById('editRole').value = btn.getAttribute('data-user-role');
+      document.getElementById('editActive').checked = btn.getAttribute('data-user-active') === '1';
+      document.getElementById('editPassword').value = '';
+      document.getElementById('editUserForm').action = '/admin/users/' + id + '/edit';
+    });
+  });
+</script>
+{% endblock %}

@@ -193,7 +193,9 @@
       </a>
     </li>
   </ul>
-  {% if current_user.is_authenticated and current_user.role in ['Superadmin', 'General Manager', 'Admin', 'Auditor'] %}
+  {% set can_view_admin = current_user.is_authenticated and current_user.role in ['Superadmin', 'General Manager', 'Admin', 'Auditor'] %}
+  {% set can_manage_users = current_user.is_authenticated and current_user.role in ['Superadmin', 'Admin'] %}
+  {% if can_view_admin %}
   <div class="nav-section">Administration</div>
   <ul class="nav flex-column mb-2">
     <li class="nav-item">
@@ -201,6 +203,13 @@
         <i class="fa-solid fa-shield-halved"></i>Audit Logs
       </a>
     </li>
+    {% if can_manage_users %}
+    <li class="nav-item">
+      <a class="nav-link {{ 'active' if request.endpoint and request.endpoint.startswith('user_admin.') }}" href="{{ url_for('user_admin.users') }}">
+        <i class="fa-solid fa-users-gear"></i>User Management
+      </a>
+    </li>
+    {% endif %}
   </ul>
   {% endif %}
   <div class="sidebar-footer">

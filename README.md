@@ -25,7 +25,7 @@ python app.py
 ```
 
 Then open http://localhost:5000 — it redirects to the dashboard. Default login:
-`Jenny` / `jenny_081226` (role: Admin).
+`Jenny` / `jenny_081226` (role: Auditor) · `Queben` / `qjdc.cfi` (General Manager) · `admin` / `admin123` (Admin — manages users at /admin/users)
 
 ## Structure
 

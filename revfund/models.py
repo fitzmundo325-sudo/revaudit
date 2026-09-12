@@ -13,6 +13,19 @@ class User(db.Model, UserMixin):
     last_activity_at = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
     last_login_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
+    @property
+    def is_active(self):
+        # Deactivated accounts are kept in the database (audit history) but
+        # can never authenticate. Flask-Login consults this on every request.
+        return not self.username.startswith('deactivated:')
+
+    @is_active.setter
+    def is_active(self, value):
+        if not value and not self.username.startswith('deactivated:'):
+            self.username = 'deactivated:' + self.username
+        elif value and self.username.startswith('deactivated:'):
+            self.username = self.username.split('deactivated:', 1)[1]
+
 
 class Expense(db.Model):
     __tablename__ = 'expenses'

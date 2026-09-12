@@ -11,6 +11,7 @@
     <a href="{{ url_for('views.export_csv', unit_name=unit) }}" download class="btn btn-outline-secondary btn-sm">
       <i class="fa-solid fa-download me-1"></i>Export CSV
     </a>
+    {% if can_modify_data %}
     <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#importModal">
       <i class="fa-solid fa-file-import me-1"></i>Import Excel
     </button>
@@ -25,6 +26,7 @@
     <button class="btn btn-brand btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
       <i class="fa-solid fa-plus me-1"></i>Add Entry
     </button>
+    {% endif %}
   </div>
 </div>
 
@@ -66,12 +68,16 @@
           <td>{{ e.tin or '' }}</td>
           <td>{{ e.address or '' }}</td>
           <td class="text-end">{{ '{:,.2f}'.format(e.amount) }}</td>
+          {% if can_modify_data %}
           <td class="text-nowrap">
             <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editModal{{ e.id }}"><i class="fa-solid fa-pen"></i></button>
             <form method="post" action="{{ url_for('views.delete_entry', entry_id=e.id) }}" class="d-inline" onsubmit="return confirm('Delete this entry?');">
               <button class="btn btn-sm btn-outline-danger" type="submit"><i class="fa-solid fa-trash"></i></button>
             </form>
           </td>
+          {% else %}
+          <td></td>
+          {% endif %}
         </tr>
         {% else %}
         <tr><td colspan="11" class="text-center text-muted py-4">No entries yet for this unit.</td></tr>
@@ -88,6 +94,7 @@
   </div>
 </div>
 
+{% if can_modify_data %}
 <!-- Import Modal -->
 <div class="modal fade" id="importModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -131,7 +138,10 @@
   </div>
 </div>
 
+{% endif %}
+
 <!-- Edit Modals -->
+{% if can_modify_data %}
 {% for e in entries %}
 <div class="modal fade" id="editModal{{ e.id }}" tabindex="-1">
   <div class="modal-dialog modal-lg">
@@ -153,5 +163,6 @@
   </div>
 </div>
 {% endfor %}
+{% endif %}
 
 {% endblock %}

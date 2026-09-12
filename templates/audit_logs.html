@@ -7,11 +7,13 @@
     <h3 class="page-title mb-1"><i class="fa-solid fa-shield-halved me-2"></i>Audit Logs</h3>
     <div class="page-sub">Tamper-evident event trail (hash-chained) · most recent 500 events</div>
   </div>
+  {% if can_reset_logs %}
   <form method="post" action="{{ url_for('views.reset_audit_logs_route') }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to reset all audit logs? This action cannot be undone.');">
     <button type="submit" class="btn btn-sm btn-danger">
       <i class="fa-solid fa-trash-can me-1"></i>Reset Logs
     </button>
   </form>
+  {% endif %}
 </div>
 
 {% if tampered_ids %}
