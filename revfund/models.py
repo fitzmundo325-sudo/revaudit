@@ -9,9 +9,20 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(64), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(100), nullable=False, default='Admin')
+    # Separate access level for ledger data: 'Viewer' (read-only) or 'Editor'
+    # (can add/edit/import/delete expense entries). Privileged roles always
+    # behave as editors regardless of this value.
+    access_level = db.Column(db.String(20), nullable=False, default='Viewer', server_default='Viewer')
     created_at = db.Column(db.DateTime, default=func.now())
     last_activity_at = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
     last_login_at = db.Column(db.DateTime(timezone=True), nullable=True)
+
+    # Roles that manage the system; their ledger access is always full.
+    PRIVILEGED = {'Admin', 'Superadmin', 'Auditor'}
+
+    @property
+    def can_modify_data(self):
+        return self.role in self.PRIVILEGED or self.access_level == 'Editor'
 
     @property
     def is_active(self):

@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
 
-from . import db, ROLES, USER_MANAGEMENT_ROLES
+from . import db, ROLES, ACCESS_LEVELS, USER_MANAGEMENT_ROLES
 from .models import User, AuditLog
 from .audit import log_audit_event
 
@@ -36,7 +36,8 @@ def users():
     if not _can_manage_users():
         return _deny()
     all_users = User.query.order_by(User.id.asc()).all()
-    return render_template('users.html', users=all_users, roles=ROLES)
+    return render_template('users.html', users=all_users, roles=ROLES,
+                           access_levels=ACCESS_LEVELS)
 
 
 @user_admin.route('/admin/users/add', methods=['POST'])
@@ -47,7 +48,8 @@ def add_user():
 
     username = (request.form.get('username') or '').strip()
     password = request.form.get('password') or ''
-    role = request.form.get('role') or 'Encoder'
+    role = request.form.get('role') or 'Staff'
+    access_level = request.form.get('access_level') or 'Viewer'
     is_active = request.form.get('is_active') == 'on'
 
     if not username:
@@ -59,6 +61,9 @@ def add_user():
     if role not in ROLES:
         flash('Invalid role selected.', 'danger')
         return redirect(url_for('user_admin.users'))
+    if access_level not in ACCESS_LEVELS:
+        flash('Invalid access level selected.', 'danger')
+        return redirect(url_for('user_admin.users'))
     if User.query.filter_by(username=username).first():
         flash(f'Username "{username}" already exists.', 'danger')
         return redirect(url_for('user_admin.users'))
@@ -67,6 +72,7 @@ def add_user():
         username=username,
         password_hash=generate_password_hash(password),
         role=role,
+        access_level=access_level,
         is_active=is_active,
     )
     db.session.add(user)
@@ -81,11 +87,11 @@ def add_user():
         action='user.create',
         entity_type='User',
         entity_id=user.id,
-        reason=f'Created user "{username}" with role {role}.',
-        details={'username': username, 'role': role, 'is_active': is_active},
+        reason=f'Created user "{username}" with role {role} ({access_level}).',
+        details={'username': username, 'role': role, 'access_level': access_level, 'is_active': is_active},
         commit=True,
     )
-    flash(f'User "{username}" created with role {role}.', 'success')
+    flash(f'User "{username}" created with role {role} ({access_level}).', 'success')
     return redirect(url_for('user_admin.users'))
 
 
@@ -99,13 +105,19 @@ def edit_user(user_id):
     username = (request.form.get('username') or '').strip()
     password = request.form.get('password') or ''
     role = request.form.get('role') or user.role
+    access_level = request.form.get('access_level') or user.access_level
     is_active = request.form.get('is_active') == 'on'
 
     if not username:
         flash('Username is required.', 'danger')
         return redirect(url_for('user_admin.users'))
-    if role not in ROLES:
+    # Accept the user's existing (possibly legacy) role unchanged; only
+    # validate when the admin is actually switching to a different role.
+    if role not in ROLES and role != user.role:
         flash('Invalid role selected.', 'danger')
+        return redirect(url_for('user_admin.users'))
+    if access_level not in ACCESS_LEVELS:
+        flash('Invalid access level selected.', 'danger')
         return redirect(url_for('user_admin.users'))
     if password and len(password) < 4:
         flash('Password must be at least 4 characters long.', 'danger')
@@ -133,6 +145,9 @@ def edit_user(user_id):
     if role != user.role:
         changes['role'] = {'from': user.role, 'to': role}
         user.role = role
+    if access_level != user.access_level:
+        changes['access_level'] = {'from': user.access_level, 'to': access_level}
+        user.access_level = access_level
     if is_active != user.is_active:
         changes['is_active'] = {'from': user.is_active, 'to': is_active}
         user.is_active = is_active

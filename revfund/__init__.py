@@ -18,14 +18,31 @@ cache = Cache()
 PRIVILEGED_ROLES = ('Superadmin', 'General Manager', 'Admin', 'Auditor')
 
 # All selectable roles, in ascending order of privilege.
-ROLES = ('Encoder', 'Auditor', 'General Manager', 'Admin', 'Superadmin')
+ROLES = ('Staff', 'Auditor', 'General Manager', 'Admin', 'Superadmin')
+
+# Ledger access levels, chosen separately from the role.
+ACCESS_LEVELS = ('Viewer', 'Editor')
 
 # Roles allowed to manage user accounts (User Management page).
 USER_MANAGEMENT_ROLES = ('Superadmin', 'Admin')
 
-# Roles with view-only access: they can browse the dashboard, ledgers and
-# audit logs, but cannot add/edit/delete/import expense entries.
-VIEWER_ONLY_ROLES = ('General Manager',)
+# Roles that always have full ledger access regardless of access level.
+PRIVILEGED_DATA_ROLES = ('Superadmin', 'Admin', 'Auditor')
+
+
+def _ensure_user_access_level_column():
+    with db.engine.connect() as conn:
+        existing_columns = {
+            row[1]
+            for row in conn.execute(text("PRAGMA table_info('users')")).fetchall()
+        }
+
+        if 'access_level' not in existing_columns:
+            conn.execute(text(
+                "ALTER TABLE users ADD COLUMN access_level VARCHAR(20) "
+                "NOT NULL DEFAULT 'Viewer'"
+            ))
+        conn.commit()
 
 DB_NAME = 'revfund.db'
 
@@ -120,9 +137,9 @@ def seed_user_if_empty():
 
     if User.query.first():
         return
-    db.session.add(User(username='Jenny', password_hash=generate_password_hash('jenny_081226'), role='Auditor'))
-    db.session.add(User(username='Queben', password_hash=generate_password_hash('qjdc.cfi'), role='General Manager'))
-    db.session.add(User(username='admin', password_hash=generate_password_hash('admin123'), role='Admin'))
+    db.session.add(User(username='Jenny', password_hash=generate_password_hash('jenny_081226'), role='Auditor', access_level='Editor'))
+    db.session.add(User(username='Queben', password_hash=generate_password_hash('qjdc.cfi'), role='General Manager', access_level='Viewer'))
+    db.session.add(User(username='admin', password_hash=generate_password_hash('admin123'), role='Admin', access_level='Editor'))
     db.session.commit()
 
 
@@ -178,6 +195,7 @@ def create_app():
                 db.session.commit()
             app.config['SECRET_KEY'] = stored_secret.secret_value
         _ensure_user_role_column()
+        _ensure_user_access_level_column()
         _ensure_user_presence_column()
         _ensure_expense_trxn_code_column()
         seed_user_if_empty()
@@ -270,8 +288,8 @@ def create_app():
     @app.context_processor
     def inject_permissions():
         return {
-            'can_modify_data': getattr(current_user, 'role', '') not in VIEWER_ONLY_ROLES
-                               if current_user.is_authenticated else True,
+            'can_modify_data': current_user.can_modify_data
+                               if current_user.is_authenticated else False,
         }
 
     LOCAL_UTC_OFFSET = timezone(timedelta(hours=8))

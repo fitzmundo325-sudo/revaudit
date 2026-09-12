@@ -22,6 +22,7 @@
               <th>ID</th>
               <th>Username</th>
               <th>Role</th>
+              <th>Access</th>
               <th>Status</th>
               <th>Last Login</th>
               <th class="text-end">Actions</th>
@@ -37,6 +38,13 @@
               </td>
               <td><span class="account-badge">{{ u.role }}</span></td>
               <td>
+                {% if u.can_modify_data %}
+                  <span class="badge bg-primary-subtle text-primary-emphasis"><i class="fa-solid fa-pen-to-square me-1"></i>Editor</span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary-emphasis"><i class="fa-solid fa-eye me-1"></i>Viewer</span>
+                {% endif %}
+              </td>
+              <td>
                 {% if u.is_active %}
                   <span class="badge bg-success-subtle text-success-emphasis">Active</span>
                 {% else %}
@@ -50,6 +58,7 @@
                         data-user-id="{{ u.id }}"
                         data-user-username="{{ u.username }}"
                         data-user-role="{{ u.role }}"
+                        data-user-access="{{ 'Editor' if u.can_modify_data and u.role not in ['Superadmin', 'Admin', 'Auditor'] else u.access_level }}"
                         data-user-active="{{ '1' if u.is_active else '0' }}"
                         title="Edit user">
                   <i class="fa-solid fa-pen"></i>
@@ -65,7 +74,7 @@
               </td>
             </tr>
             {% else %}
-            <tr><td colspan="6" class="text-center text-muted py-4">No users found.</td></tr>
+            <tr><td colspan="7" class="text-center text-muted py-4">No users found.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -75,13 +84,20 @@
   <div class="col-lg-4">
     <div class="card p-3 h-100">
       <h6 class="fw-bold mb-2"><i class="fa-solid fa-circle-info me-1 text-brand"></i>Role permissions</h6>
-      <ul class="list-unstyled small mb-0">
+      <ul class="list-unstyled small mb-2">
         <li class="mb-2"><span class="account-badge">Superadmin</span><br><span class="text-muted">Full access, including user management.</span></li>
-        <li class="mb-2"><span class="account-badge">Admin</span><br><span class="text-muted">Manage users, reset audit logs, full encoder access.</span></li>
-        <li class="mb-2"><span class="account-badge">General Manager</span><br><span class="text-muted">View-only: dashboard, ledgers and audit logs; bypasses maintenance mode.</span></li>
-        <li class="mb-2"><span class="account-badge">Auditor</span><br><span class="text-muted">View audit logs; full encoder access to ledgers.</span></li>
-        <li class="mb-0"><span class="account-badge">Encoder</span><br><span class="text-muted">Add and edit expense entries only.</span></li>
+        <li class="mb-2"><span class="account-badge">Admin</span><br><span class="text-muted">Manage users, reset audit logs, full ledger access.</span></li>
+        <li class="mb-2"><span class="account-badge">Auditor</span><br><span class="text-muted">View audit logs; full ledger access.</span></li>
+        <li class="mb-2"><span class="account-badge">General Manager</span><br><span class="text-muted">View audit logs; ledger access per Access Level; bypasses maintenance mode.</span></li>
+        <li class="mb-0"><span class="account-badge">Staff</span><br><span class="text-muted">Regular user; ledger access per Access Level.</span></li>
       </ul>
+      <hr class="my-2">
+      <h6 class="fw-bold mb-2"><i class="fa-solid fa-key me-1 text-brand"></i>Access Level <span class="text-muted fw-normal">(ledger rights)</span></h6>
+      <ul class="list-unstyled small mb-0">
+        <li class="mb-2"><span class="badge bg-secondary-subtle text-secondary-emphasis"><i class="fa-solid fa-eye me-1"></i>Viewer</span><br><span class="text-muted">Can view the dashboard and ledgers only — no changes.</span></li>
+        <li class="mb-0"><span class="badge bg-primary-subtle text-primary-emphasis"><i class="fa-solid fa-pen-to-square me-1"></i>Editor</span><br><span class="text-muted">Can add, edit, import and delete expense entries.</span></li>
+      </ul>
+      <div class="form-text mt-2">Admin, Superadmin and Auditor always have Editor rights regardless of this setting.</div>
     </div>
   </div>
 </div>
@@ -108,9 +124,23 @@
           <label class="form-label">Role</label>
           <select class="form-select" name="role">
             {% for r in roles %}
-            <option value="{{ r }}" {{ 'selected' if r == 'Encoder' }}>{{ r }}</option>
+            <option value="{{ r }}" {{ 'selected' if r == 'Staff' }}>{{ r }}</option>
             {% endfor %}
           </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label d-block">Access Level <span class="text-muted fw-normal">(what they can do in the ledgers)</span></label>
+          <div class="d-flex gap-3 ps-1">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="access_level" id="addAccessViewer" value="Viewer" checked>
+              <label class="form-check-label" for="addAccessViewer"><i class="fa-solid fa-eye me-1"></i>Viewer</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="access_level" id="addAccessEditor" value="Editor">
+              <label class="form-check-label" for="addAccessEditor"><i class="fa-solid fa-pen-to-square me-1"></i>Editor</label>
+            </div>
+          </div>
+          <div class="form-text">Viewer = view only · Editor = add/edit expense entries.</div>
         </div>
         <div class="form-check form-switch">
           <input class="form-check-input" type="checkbox" name="is_active" id="addActive" checked>
@@ -151,6 +181,20 @@
             {% endfor %}
           </select>
         </div>
+        <div class="mb-3">
+          <label class="form-label d-block">Access Level <span class="text-muted fw-normal">(what they can do in the ledgers)</span></label>
+          <div class="d-flex gap-3 ps-1">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="access_level" id="editAccessViewer" value="Viewer">
+              <label class="form-check-label" for="editAccessViewer"><i class="fa-solid fa-eye me-1"></i>Viewer</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="access_level" id="editAccessEditor" value="Editor">
+              <label class="form-check-label" for="editAccessEditor"><i class="fa-solid fa-pen-to-square me-1"></i>Editor</label>
+            </div>
+          </div>
+          <div class="form-text">Viewer = view only · Editor = add/edit expense entries.</div>
+        </div>
         <div class="form-check form-switch">
           <input class="form-check-input" type="checkbox" name="is_active" id="editActive">
           <label class="form-check-label" for="editActive">Account active (can log in)</label>
@@ -177,7 +221,22 @@
       var id = btn.getAttribute('data-user-id');
       document.getElementById('editUserId').value = id;
       document.getElementById('editUsername').value = btn.getAttribute('data-user-username');
-      document.getElementById('editRole').value = btn.getAttribute('data-user-role');
+
+      var role = btn.getAttribute('data-user-role');
+      var editRole = document.getElementById('editRole');
+      // If the user's saved role isn't in the list (legacy role), add it
+      // so the dropdown still shows their real role instead of silently
+      // defaulting to the first option.
+      var hasRole = Array.prototype.some.call(editRole.options, function (o) { return o.value === role; });
+      if (!hasRole && role) {
+        editRole.add(new Option(role, role, true, true), editRole.firstChild);
+      }
+      editRole.value = role;
+
+      var access = btn.getAttribute('data-user-access') || 'Viewer';
+      document.getElementById('editAccessViewer').checked = (access === 'Viewer');
+      document.getElementById('editAccessEditor').checked = (access === 'Editor');
+
       document.getElementById('editActive').checked = btn.getAttribute('data-user-active') === '1';
       document.getElementById('editPassword').value = '';
       document.getElementById('editUserForm').action = '/admin/users/' + id + '/edit';

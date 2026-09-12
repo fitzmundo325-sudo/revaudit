@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash, Response, session
 from flask_login import login_required, current_user
 from .models import Expense, AuditLog
-from . import db, VIEWER_ONLY_ROLES
+from . import db, PRIVILEGED_DATA_ROLES
 from .audit import log_audit_event, verify_audit_chain, reset_audit_logs
 
 views = Blueprint('views', __name__)
@@ -99,8 +99,10 @@ def _can_reset_audit_logs():
 
 
 def _can_modify_data():
-    """Viewer-only roles (e.g. General Manager) can look but not touch."""
-    return getattr(current_user, 'role', '') not in VIEWER_ONLY_ROLES
+    """Full ledger access: privileged roles always, others per access level."""
+    if getattr(current_user, 'role', '') in PRIVILEGED_DATA_ROLES:
+        return True
+    return getattr(current_user, 'access_level', 'Viewer') == 'Editor'
 
 
 def parse_date(value):
